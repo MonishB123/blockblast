@@ -24,37 +24,37 @@ class GameBoard:
         self.pieces = {
             "single": {(0, 0)},  # Single block
             
-            # Line pieces
-            "2-horizontal": {(0, 0), (1, 0)},  
-            "2-vertical": {(0, 0), (0, 1)},  
-            "3-horizontal": {(0, 0), (1, 0), (2, 0)},  
-            "3-vertical": {(0, 0), (0, 1), (0, 2)},  
-            "4-horizontal": {(0, 0), (1, 0), (2, 0), (3, 0)},  
-            "4-vertical": {(0, 0), (0, 1), (0, 2), (0, 3)},  
+            # # Line pieces
+            # "2-horizontal": {(0, 0), (1, 0)},  
+            # "2-vertical": {(0, 0), (0, 1)},  
+            # "3-horizontal": {(0, 0), (1, 0), (2, 0)},  
+            # "3-vertical": {(0, 0), (0, 1), (0, 2)},  
+            # "4-horizontal": {(0, 0), (1, 0), (2, 0), (3, 0)},  
+            # "4-vertical": {(0, 0), (0, 1), (0, 2), (0, 3)},  
 
-            # L-shaped blocks
-            "L-right": {(0, 0), (1, 0), (2, 0), (2, 1)},  
-            "L-left": {(0, 0), (1, 0), (2, 0), (0, 1)},  
-            "L-up": {(0, 0), (0, 1), (0, 2), (1, 2)},  
-            "L-down": {(0, 0), (0, 1), (0, 2), (-1, 2)},  
+            # # L-shaped blocks
+            # "L-right": {(0, 0), (1, 0), (2, 0), (2, 1)},  
+            # "L-left": {(0, 0), (1, 0), (2, 0), (0, 1)},  
+            # "L-up": {(0, 0), (0, 1), (0, 2), (1, 2)},  
+            # "L-down": {(0, 0), (0, 1), (0, 2), (-1, 2)},  
 
-            # Square (2x2)
-            "square": {(0, 0), (1, 0), (0, 1), (1, 1)},
-            "square-3x3": {(0, 0), (1, 0), (2, 0), 
-                (0, 1), (1, 1), (2, 1), 
-                (0, 2), (1, 2), (2, 2)},
+            # # Square (2x2)
+            # "square": {(0, 0), (1, 0), (0, 1), (1, 1)},
+            # "square-3x3": {(0, 0), (1, 0), (2, 0), 
+            #     (0, 1), (1, 1), (2, 1), 
+            #     (0, 2), (1, 2), (2, 2)},
 
-            # T-shaped blocks
-            "T-up": {(0, 0), (1, 0), (2, 0), (1, 1)},  
-            "T-down": {(0, 0), (1, 0), (2, 0), (1, -1)},  
-            "T-left": {(0, 0), (0, 1), (0, 2), (1, 1)},  
-            "T-right": {(0, 0), (0, 1), (0, 2), (-1, 1)},  
+            # # T-shaped blocks
+            # "T-up": {(0, 0), (1, 0), (2, 0), (1, 1)},  
+            # "T-down": {(0, 0), (1, 0), (2, 0), (1, -1)},  
+            # "T-left": {(0, 0), (0, 1), (0, 2), (1, 1)},  
+            # "T-right": {(0, 0), (0, 1), (0, 2), (-1, 1)},  
 
-            # Z-shaped blocks (S-shapes)
-            "Z-right": {(0, 0), (1, 0), (1, 1), (2, 1)},  
-            "Z-left": {(0, 0), (-1, 0), (-1, 1), (-2, 1)},  
-            "S-right": {(0, 0), (1, 0), (0, 1), (-1, 1)},  
-            "S-left": {(0, 0), (-1, 0), (0, 1), (1, 1)},  
+            # # Z-shaped blocks (S-shapes)
+            # "Z-right": {(0, 0), (1, 0), (1, 1), (2, 1)},  
+            # "Z-left": {(0, 0), (-1, 0), (-1, 1), (-2, 1)},  
+            # "S-right": {(0, 0), (1, 0), (0, 1), (-1, 1)},  
+            # "S-left": {(0, 0), (-1, 0), (0, 1), (1, 1)},  
         }
 
     def place_piece(self, piece_name, x, y, _color = "RED"):
@@ -136,7 +136,7 @@ def play_game(genome, config):
     board = GameBoard()
     score = 0
     piece_names = list(board.pieces.keys())
-    available_pieces = random.sample(piece_names, 3)  # Select initial 3 random pieces
+    available_pieces = random.sample(piece_names, 1)  # Select initial 3 random pieces
     
     while board.isPossible(available_pieces):  # Continue until no valid move is left
         # Flatten board state as input (8x8 grid -> 64 inputs)
@@ -163,7 +163,7 @@ def play_game(genome, config):
             score += board.clear_lines() * 10
             available_pieces.remove(piece_name)  # Remove used piece
             if not available_pieces:  # If all 3 are used, pick new ones
-                available_pieces = random.sample(piece_names, 3)
+                available_pieces = random.sample(piece_names, 1)
 
         else:
             return score  # Ignore invalid moves
