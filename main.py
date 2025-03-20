@@ -186,7 +186,7 @@ def run_neat():
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)
     
-    winner = pop.run(eval_genomes, 1000)
+    winner = pop.run(eval_genomes, 200)
     return winner, config
 
 def print_game(genome, config):
@@ -194,7 +194,7 @@ def print_game(genome, config):
     board = GameBoard()
     score = 0
     piece_names = list(board.pieces.keys())
-    available_pieces = random.sample(piece_names, 3)  # Select initial 3 random pieces
+    available_pieces = random.sample(piece_names, 1)  # Select initial 3 random pieces
     
     while board.isPossible(available_pieces):  # Continue until no valid move is left
         # Flatten board state as input (8x8 grid -> 64 inputs)
@@ -224,7 +224,7 @@ def print_game(genome, config):
             print(board)
             available_pieces.remove(piece_name)  # Remove used piece
             if not available_pieces:  # If all 3 are used, pick new ones
-                available_pieces = random.sample(piece_names, 3)
+                available_pieces = random.sample(piece_names, 1)
 
         else:
             print("invalid move")
