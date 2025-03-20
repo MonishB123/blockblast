@@ -1,6 +1,8 @@
 import neat
 import random
 import numpy as np
+import matplotlib.pyplot as plt
+from collections import Counter
 
 
 class Spot:
@@ -139,7 +141,7 @@ def play_game(genome, config):
     while board.isPossible(available_pieces):  # Continue until no valid move is left
         # Flatten board state as input (8x8 grid -> 64 inputs)
         inputs = [int(board.board[i][j].occupied) for i in range(8) for j in range(8)]
-    
+
         # One-hot encode the available pieces
         piece_encoding = [1 if piece in available_pieces else 0 for piece in piece_names]
         inputs.extend(piece_encoding)  # Append to input list
@@ -153,6 +155,9 @@ def play_game(genome, config):
         piece_index = min(max(piece_index, 0), len(available_pieces) - 1)
         piece_name = available_pieces[piece_index]
 
+        x_vals.append(x)
+        y_vals.append(y)
+        piecechosen.append(piece_name)
         if board.place_piece(piece_name, x, y, random.choice(["RED", "BLUE", "GREEN", "YELLOW", "CYAN"])):
             score += 10
             score += board.clear_lines() * 10
@@ -181,7 +186,7 @@ def run_neat():
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)
     
-    winner = pop.run(eval_genomes, 100)
+    winner = pop.run(eval_genomes, 1000)
     return winner, config
 
 def print_game(genome, config):
@@ -203,8 +208,8 @@ def print_game(genome, config):
         outputs = net.activate(inputs)
 
         # Extract move choices
-        x, y = int(outputs[0] * 8), int(outputs[1] * 8)
-        piece_index = int(outputs[2] * len(available_pieces))
+        x, y = round(outputs[0] * 8), round(outputs[1] * 8)
+        piece_index = round(outputs[2] * len(available_pieces))
         piece_index = min(max(piece_index, 0), len(available_pieces) - 1)
         piece_name = available_pieces[piece_index]
         print(board)
@@ -228,5 +233,14 @@ def print_game(genome, config):
     return score
 
 if __name__ == "__main__":
+    x_vals = []
+    y_vals = []
+    piecechosen = []
     winner, config = run_neat()
+    plt.hist(x_vals)
+    plt.show()
+    plt.hist(y_vals)
+    plt.show()
+    plt.hist(piecechosen)
+    plt.show()
     print_game(winner, config)
