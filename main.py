@@ -137,8 +137,10 @@ def play_game(genome, config):
     score = 0
     piece_names = list(board.pieces.keys())
     available_pieces = random.sample(piece_names, 1)  # Select initial 3 random pieces
+    hard_limit_iters = 1000
     
-    while board.isPossible(available_pieces):  # Continue until no valid move is left
+    while board.isPossible(available_pieces) or hard_limit_iters < 0:  # Continue until no valid move is left
+        hard_limit_iters -= 1
         # Flatten board state as input (8x8 grid -> 64 inputs)
         inputs = [int(board.board[i][j].occupied) for i in range(8) for j in range(8)]
 
@@ -146,14 +148,14 @@ def play_game(genome, config):
         piece_encoding = [1 if piece in available_pieces else 0 for piece in piece_names]
         inputs.extend(piece_encoding)  # Append to input list
 
-        # Neural network activation
         outputs = net.activate(inputs)
 
-        # Extract move choices
-        x, y = int(outputs[0] * 8), int(outputs[1] * 8)
-        piece_index = int(outputs[2] * len(available_pieces))
-        piece_index = min(max(piece_index, 0), len(available_pieces) - 1)
-        piece_name = available_pieces[piece_index]
+        # Board placement (64 nodes)
+        position_index = np.argmax(outputs[:64])  # Get highest activated position
+        x, y = divmod(position_index, 8)  # Convert index to (x, y) coordinates
+        # Piece selection (N nodes)
+        piece_index = np.argmax(outputs[64:64+len(piece_names)])
+        piece_name = piece_names[piece_index]
 
         x_vals.append(x)
         y_vals.append(y)
@@ -186,7 +188,7 @@ def run_neat():
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)
     
-    winner = pop.run(eval_genomes, 200)
+    winner = pop.run(eval_genomes, 100)
     return winner, config
 
 def print_game(genome, config):
@@ -208,10 +210,13 @@ def print_game(genome, config):
         outputs = net.activate(inputs)
 
         # Extract move choices
-        x, y = round(outputs[0] * 8), round(outputs[1] * 8)
-        piece_index = round(outputs[2] * len(available_pieces))
-        piece_index = min(max(piece_index, 0), len(available_pieces) - 1)
-        piece_name = available_pieces[piece_index]
+        # Board placement (64 nodes)
+        position_index = np.argmax(outputs[:64])  # Get highest activated position
+        x, y = divmod(position_index, 8)  # Convert index to (x, y) coordinates
+
+        # Piece selection (N nodes)
+        piece_index = np.argmax(outputs[64:64+len(piece_names)])
+        piece_name = piece_names[piece_index]
         print(board)
         print(available_pieces)
         print(x, y, piece_name, sep=" ")
