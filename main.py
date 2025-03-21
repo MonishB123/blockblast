@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
 import time
+import multiprocessing
+import itertools 
+import re
 
 class Spot:
     def __init__(self, color = "RED", occupied = False):
@@ -179,10 +182,9 @@ def play_game(genome, config):
 
 
 def eval_genomes(genomes, config):
-    for genome_id, genome in genomes:
+    for _, genome in genomes:
         time.sleep(0.01)
         genome.fitness = play_game(genome, config)
-        """Print the mean and median of genome connection weights."""
         # weights = [conn.weight for conn in genome.connections.values()]
 
         # if weights:  # Ensure there are weights before calculating statistics
@@ -190,19 +192,37 @@ def eval_genomes(genomes, config):
         #     median_weight = np.median(weights)
         #     print(f"Mean weight: {mean_weight:.4f}, Median weight: {median_weight:.4f}")
 
-def run_neat():
-    config_path = "base_config.txt"  # Ensure this file is correctly formatted
+def run_neat(config_path):
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                          neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
-    print(config.genome_config.__dict__)
-    
     pop = neat.Population(config)
-    pop.add_reporter(neat.StdOutReporter(True))
-    stats = neat.StatisticsReporter()
-    pop.add_reporter(stats)
+    # pop.add_reporter(neat(False))
+    # stats = neat.StatisticsReporter()
+    # pop.add_reporter(stats)
+    winner = pop.run(eval_genomes, 1000)
+    return winner.fitness
+
+def worker(params, config_template, param_grid):
+    config_file = f"config_{params}.txt"
+    with open(config_template, 'r') as f:
+        config_data = f.read()
+
+    for param, value in zip(param_grid.keys(), params):
+        config_data = re.sub(rf"^{param} = .*", f"{param} = {value}", config_data, flags=re.MULTILINE)
+
+    with open(config_file, 'w') as f:
+        f.write(config_data)
     
-    winner = pop.run(eval_genomes, 200)
-    return winner, config
+    return params, run_neat(config_file)
+
+def parallel_experiment(config_template, param_grid):
+    param_combinations = list(itertools.product(*param_grid.values()))
+    
+    with multiprocessing.Pool(processes=len(param_combinations)) as pool:
+        results = pool.starmap(worker, [(params, config_template, param_grid) for params in param_combinations])
+    
+    for params, fitness in results:
+        print(f"Params: {params}, Fitness: {fitness}")
 
 def print_game(genome, config):
     net = neat.nn.FeedForwardNetwork.create(genome, config)
@@ -251,14 +271,13 @@ def print_game(genome, config):
     return score
 
 if __name__ == "__main__":
-    x_vals = []
-    y_vals = []
-    piecechosen = []
-    winner, config = run_neat()
-    plt.hist(x_vals)
-    plt.show()
-    plt.hist(y_vals)
-    plt.show()
-    plt.hist(piecechosen)
-    plt.show()
-    print_game(winner, config)
+    param_grid = {
+        "weight_mutate_rate": [0.2, 0.5, 0.9],
+        "weight_mutate_power" : [0.2, 0.5, 0.9]
+
+    }
+    parallel_experiment("base_config.txt", param_grid)
+    parallel_experiment("base_config.txt", param_grid)
+    parallel_experiment("base_config.txt", param_grid)
+    parallel_experiment("base_config.txt", param_grid)
+    parallel_experiment("base_config.txt", param_grid)
