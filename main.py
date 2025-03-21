@@ -3,7 +3,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
-
+import time
 
 class Spot:
     def __init__(self, color = "RED", occupied = False):
@@ -90,13 +90,11 @@ class GameBoard:
         for y in rows_to_clear:
             for x in range(8):
                 self.board[y][x].occupied = False
-            print(f"Cleared row {y}!")
 
         # Clear full columns
         for x in cols_to_clear:
             for y in range(8):
                 self.board[y][x].occupied = False
-            print(f"Cleared column {x}!")
 
         # Print message if anything was cleared
         if rows_to_clear or cols_to_clear:
@@ -138,6 +136,12 @@ def play_game(genome, config):
     piece_names = list(board.pieces.keys())
     available_pieces = random.sample(piece_names, 1)  # Select initial 3 random pieces
     hard_limit_iters = 1000
+
+    # Randomize board state (adjust probability as needed)
+    # for i in range(8):
+    #     for j in range(8):
+    #         board.board[i][j].occupied = random.random() < 0.2
+    # board.clear_lines()
     
     while board.isPossible(available_pieces) or hard_limit_iters < 0:  # Continue until no valid move is left
         hard_limit_iters -= 1
@@ -157,12 +161,13 @@ def play_game(genome, config):
         piece_index = np.argmax(outputs[64:64+len(piece_names)])
         piece_name = piece_names[piece_index]
 
-        x_vals.append(x)
-        y_vals.append(y)
-        piecechosen.append(piece_name)
+        # x_vals.append(x)
+        # y_vals.append(y)
+        # piecechosen.append(piece_name)
         if board.place_piece(piece_name, x, y, random.choice(["RED", "BLUE", "GREEN", "YELLOW", "CYAN"])):
             score += 10
-            score += board.clear_lines() * 10
+            linescleared = board.clear_lines()
+            score += linescleared * 80
             available_pieces.remove(piece_name)  # Remove used piece
             if not available_pieces:  # If all 3 are used, pick new ones
                 available_pieces = random.sample(piece_names, 1)
@@ -175,7 +180,15 @@ def play_game(genome, config):
 
 def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
+        time.sleep(0.01)
         genome.fitness = play_game(genome, config)
+        """Print the mean and median of genome connection weights."""
+        # weights = [conn.weight for conn in genome.connections.values()]
+
+        # if weights:  # Ensure there are weights before calculating statistics
+        #     mean_weight = np.mean(weights)
+        #     median_weight = np.median(weights)
+        #     print(f"Mean weight: {mean_weight:.4f}, Median weight: {median_weight:.4f}")
 
 def run_neat():
     config_path = "base_config.txt"  # Ensure this file is correctly formatted
@@ -188,7 +201,7 @@ def run_neat():
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)
     
-    winner = pop.run(eval_genomes, 100)
+    winner = pop.run(eval_genomes, 200)
     return winner, config
 
 def print_game(genome, config):
