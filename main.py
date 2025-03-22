@@ -7,6 +7,8 @@ import time
 import multiprocessing
 import itertools 
 import re
+from line_profiler import LineProfiler
+from concurrent.futures import ProcessPoolExecutor as Pool
 
 class Spot:
     def __init__(self, color = "RED", occupied = False):
@@ -181,28 +183,31 @@ def play_game(genome, config):
     return score
 
 
-def eval_genomes(genomes, config):
-    for _, genome in genomes:
-        time.sleep(0.01)
-        genome.fitness = play_game(genome, config)
-        # weights = [conn.weight for conn in genome.connections.values()]
+def evaluate_genome(_genome):
+    genome, config = _genome
+    genome.fitness = play_game(genome, config)
+    return genome
 
-        # if weights:  # Ensure there are weights before calculating statistics
-        #     mean_weight = np.mean(weights)
-        #     median_weight = np.median(weights)
-        #     print(f"Mean weight: {mean_weight:.4f}, Median weight: {median_weight:.4f}")
+def eval_genomes(genomes, config, pool):
+    """Evaluates all genomes in parallel using a persistent worker pool."""
+    results = pool.map(evaluate_genome, [(genome, config) for _, genome in genomes])
+
+    for (_, genome), evaluated_genome in zip(genomes, results):
+        genome.fitness = evaluated_genome.fitness
 
 def run_neat(config_path):
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                         neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
+                        neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
     pop = neat.Population(config)
-    # pop.add_reporter(neat(False))
-    # stats = neat.StatisticsReporter()
-    # pop.add_reporter(stats)
-    winner = pop.run(eval_genomes, 1000)
+    pop.add_reporter(neat.StdOutReporter(False))
+    stats = neat.StatisticsReporter()
+    pop.add_reporter(stats)
+    with Pool(max_workers=4) as pool:
+        winner = pop.run(lambda genomes, config: eval_genomes(genomes, config, pool), 5)
     return winner.fitness
 
-def worker(params, config_template, param_grid):
+def worker(_params):
+    params, config_template, param_grid = _params
     config_file = f"config_{params}.txt"
     with open(config_template, 'r') as f:
         config_data = f.read()
@@ -217,10 +222,10 @@ def worker(params, config_template, param_grid):
 
 def parallel_experiment(config_template, param_grid):
     param_combinations = list(itertools.product(*param_grid.values()))
-    
-    with multiprocessing.Pool(processes=len(param_combinations)) as pool:
-        results = pool.starmap(worker, [(params, config_template, param_grid) for params in param_combinations])
-    
+
+    with Pool(max_workers=4) as outer_pool:
+        results = outer_pool.map(worker, [(params, config_template, param_grid) for params in param_combinations])
+
     for params, fitness in results:
         print(f"Params: {params}, Fitness: {fitness}")
 
@@ -274,10 +279,6 @@ if __name__ == "__main__":
     param_grid = {
         "weight_mutate_rate": [0.2, 0.5, 0.9],
         "weight_mutate_power" : [0.2, 0.5, 0.9]
-
     }
     parallel_experiment("base_config.txt", param_grid)
-    parallel_experiment("base_config.txt", param_grid)
-    parallel_experiment("base_config.txt", param_grid)
-    parallel_experiment("base_config.txt", param_grid)
-    parallel_experiment("base_config.txt", param_grid)
+    
