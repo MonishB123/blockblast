@@ -10,6 +10,8 @@ import re
 from line_profiler import LineProfiler
 from concurrent.futures import ProcessPoolExecutor as Pool
 
+
+numGens = 1000
 class Spot:
     def __init__(self, color = "RED", occupied = False):
         self.color = color
@@ -140,7 +142,7 @@ def play_game(genome, config):
     score = 0
     piece_names = list(board.pieces.keys())
     available_pieces = random.sample(piece_names, 1)  # Select initial 3 random pieces
-    hard_limit_iters = 1000
+    hard_limit_iters = 100
 
     # Randomize board state (adjust probability as needed)
     # for i in range(8):
@@ -148,7 +150,7 @@ def play_game(genome, config):
     #         board.board[i][j].occupied = random.random() < 0.2
     # board.clear_lines()
     
-    while board.isPossible(available_pieces) or hard_limit_iters < 0:  # Continue until no valid move is left
+    while board.isPossible(available_pieces) and hard_limit_iters > 0:  # Continue until no valid move is left
         hard_limit_iters -= 1
         # Flatten board state as input (8x8 grid -> 64 inputs)
         inputs = [int(board.board[i][j].occupied) for i in range(8) for j in range(8)]
@@ -160,11 +162,10 @@ def play_game(genome, config):
         outputs = net.activate(inputs)
 
         # Board placement (64 nodes)
-        position_index = np.argmax(outputs[:64])  # Get highest activated position
-        x, y = divmod(position_index, 8)  # Convert index to (x, y) coordinates
-        # Piece selection (N nodes)
-        piece_index = np.argmax(outputs[64:64+len(piece_names)])
-        piece_name = piece_names[piece_index]
+        x, y = int(outputs[0] * 7), int(outputs[1] * 7)
+        piece_index = int(outputs[2] * len(available_pieces))
+        piece_index = min(max(piece_index, 0), len(available_pieces) - 1)
+        piece_name = available_pieces[piece_index]
 
         # x_vals.append(x)
         # y_vals.append(y)
@@ -183,8 +184,8 @@ def play_game(genome, config):
     return score
 
 
-def evaluate_genome(_genome):
-    genome, config = _genome
+def evaluate_genome(params):
+    genome, config = params
     genome.fitness = play_game(genome, config)
     return genome
 
@@ -199,12 +200,12 @@ def run_neat(config_path):
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                         neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
     pop = neat.Population(config)
-    pop.add_reporter(neat.StdOutReporter(False))
-    stats = neat.StatisticsReporter()
-    pop.add_reporter(stats)
-    with Pool(max_workers=4) as pool:
-        winner = pop.run(lambda genomes, config: eval_genomes(genomes, config, pool), 5)
-    return winner.fitness
+    # pop.add_reporter(neat.StdOutReporter(False))
+    # stats = neat.StatisticsReporter()
+    # pop.add_reporter(stats)
+    with Pool(max_workers=10) as pool:
+        winner = pop.run(lambda genomes, config: eval_genomes(genomes, config, pool), numGens)
+    return winner.fitness, winner
 
 def worker(_params):
     params, config_template, param_grid = _params
@@ -218,7 +219,9 @@ def worker(_params):
     with open(config_file, 'w') as f:
         f.write(config_data)
     
-    return params, run_neat(config_file)
+    fitness, winner = run_neat(config_file)
+    print_game(winner, neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_file))
+    return params, fitness, winner
 
 def parallel_experiment(config_template, param_grid):
     param_combinations = list(itertools.product(*param_grid.values()))
@@ -226,7 +229,7 @@ def parallel_experiment(config_template, param_grid):
     with Pool(max_workers=4) as outer_pool:
         results = outer_pool.map(worker, [(params, config_template, param_grid) for params in param_combinations])
 
-    for params, fitness in results:
+    for params, fitness, winner in results:
         print(f"Params: {params}, Fitness: {fitness}")
 
 def print_game(genome, config):
@@ -247,14 +250,15 @@ def print_game(genome, config):
         # Neural network activation
         outputs = net.activate(inputs)
 
-        # Extract move choices
         # Board placement (64 nodes)
-        position_index = np.argmax(outputs[:64])  # Get highest activated position
-        x, y = divmod(position_index, 8)  # Convert index to (x, y) coordinates
+        x, y = int(outputs[0] * 7), int(outputs[1] * 7)
+        piece_index = int(outputs[2] * len(available_pieces))
+        piece_index = min(max(piece_index, 0), len(available_pieces) - 1)
+        piece_name = available_pieces[piece_index]
 
-        # Piece selection (N nodes)
-        piece_index = np.argmax(outputs[64:64+len(piece_names)])
-        piece_name = piece_names[piece_index]
+        # x_vals.append(x)
+        # y_vals.append(y)
+        # piecechosen.append(piece_name)
         print(board)
         print(available_pieces)
         print(x, y, piece_name, sep=" ")
@@ -277,8 +281,14 @@ def print_game(genome, config):
 
 if __name__ == "__main__":
     param_grid = {
-        "weight_mutate_rate": [0.2, 0.5, 0.9],
-        "weight_mutate_power" : [0.2, 0.5, 0.9]
+        "pop_size": [150],
+        "node_add_prob": [0.9],
+        "node_delete_prob": [0.9],
+        "conn_add_prob" : [0.2],
+        "conn_delete_prob" : [0.7],
+        "response_mutate_rate" : [0.7],
+        "response_replace_rate" : [0.7],
+        "result_default" : [1],
+        "enabled_mutate_rate" : [0.01],
     }
     parallel_experiment("base_config.txt", param_grid)
-    

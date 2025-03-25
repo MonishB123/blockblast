@@ -1,18 +1,17 @@
 [NEAT]
 fitness_criterion = max
 fitness_threshold = 300.0
-pop_size = 200
+pop_size = 150
 reset_on_extinction = False
 
 [DefaultGenome]
-activation_options = sigmoid
+activation_options = relu
 response_init_stdev = 0.0
 response_init_mean = 1.0
 num_inputs = 65
-num_outputs = 65
-num_hidden = 0
+num_outputs = 3
 activation_mutate_rate = 0.1
-aggregation_mutate_rate = 0.0
+aggregation_mutate_rate = 0.06
 bias_init_mean = 0.0
 bias_init_stdev = 1.0
 bias_max_value = 30.0
@@ -22,15 +21,15 @@ bias_mutate_rate = 0.7
 bias_replace_rate = 0.1
 compatibility_disjoint_coefficient = 1.0
 compatibility_weight_coefficient = 0.5
-conn_add_prob = 0.5
-conn_delete_prob = 0.5
 enabled_default = true
 enabled_mutate_rate = 0.01
 feed_forward = true
-initial_connection = full_direct
-max_structural_mutations = 3
+initial_connection = full
+conn_add_prob = 0.5
+conn_delete_prob = 0.5
 node_add_prob = 0.2
 node_delete_prob = 0.2
+num_hidden = 0
 response_default = 1.0
 response_max_value = 30.0
 response_min_value = -30.0
@@ -42,7 +41,7 @@ weight_init_stdev = 1.0
 weight_max_value = 30
 weight_min_value = -30
 weight_mutate_power = 0.5
-weight_mutate_rate = 0.5
+weight_mutate_rate = 0.8
 weight_replace_rate = 0.1
 
 [DefaultSpeciesSet]
