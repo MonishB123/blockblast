@@ -11,7 +11,7 @@ from line_profiler import LineProfiler
 from concurrent.futures import ProcessPoolExecutor as Pool
 
 
-numGens = 1000
+numGens = 100000
 class Spot:
     def __init__(self, color = "RED", occupied = False):
         self.color = color
@@ -31,37 +31,37 @@ class GameBoard:
         self.pieces = {
             "single": {(0, 0)},  # Single block
             
-            # # Line pieces
-            # "2-horizontal": {(0, 0), (1, 0)},  
-            # "2-vertical": {(0, 0), (0, 1)},  
-            # "3-horizontal": {(0, 0), (1, 0), (2, 0)},  
-            # "3-vertical": {(0, 0), (0, 1), (0, 2)},  
-            # "4-horizontal": {(0, 0), (1, 0), (2, 0), (3, 0)},  
-            # "4-vertical": {(0, 0), (0, 1), (0, 2), (0, 3)},  
+            # Line pieces
+            "2-horizontal": {(0, 0), (1, 0)},  
+            "2-vertical": {(0, 0), (0, 1)},  
+            "3-horizontal": {(0, 0), (1, 0), (2, 0)},  
+            "3-vertical": {(0, 0), (0, 1), (0, 2)},  
+            "4-horizontal": {(0, 0), (1, 0), (2, 0), (3, 0)},  
+            "4-vertical": {(0, 0), (0, 1), (0, 2), (0, 3)},  
 
-            # # L-shaped blocks
-            # "L-right": {(0, 0), (1, 0), (2, 0), (2, 1)},  
-            # "L-left": {(0, 0), (1, 0), (2, 0), (0, 1)},  
-            # "L-up": {(0, 0), (0, 1), (0, 2), (1, 2)},  
-            # "L-down": {(0, 0), (0, 1), (0, 2), (-1, 2)},  
+            # L-shaped blocks
+            "L-right": {(0, 0), (1, 0), (2, 0), (2, 1)},  
+            "L-left": {(0, 0), (1, 0), (2, 0), (0, 1)},  
+            "L-up": {(0, 0), (0, 1), (0, 2), (1, 2)},  
+            "L-down": {(0, 0), (0, 1), (0, 2), (-1, 2)},  
 
-            # # Square (2x2)
-            # "square": {(0, 0), (1, 0), (0, 1), (1, 1)},
-            # "square-3x3": {(0, 0), (1, 0), (2, 0), 
-            #     (0, 1), (1, 1), (2, 1), 
-            #     (0, 2), (1, 2), (2, 2)},
+            # Square (2x2)
+            "square": {(0, 0), (1, 0), (0, 1), (1, 1)},
+            "square-3x3": {(0, 0), (1, 0), (2, 0), 
+                (0, 1), (1, 1), (2, 1), 
+                (0, 2), (1, 2), (2, 2)},
 
-            # # T-shaped blocks
-            # "T-up": {(0, 0), (1, 0), (2, 0), (1, 1)},  
-            # "T-down": {(0, 0), (1, 0), (2, 0), (1, -1)},  
-            # "T-left": {(0, 0), (0, 1), (0, 2), (1, 1)},  
-            # "T-right": {(0, 0), (0, 1), (0, 2), (-1, 1)},  
+            # T-shaped blocks
+            "T-up": {(0, 0), (1, 0), (2, 0), (1, 1)},  
+            "T-down": {(0, 0), (1, 0), (2, 0), (1, -1)},  
+            "T-left": {(0, 0), (0, 1), (0, 2), (1, 1)},  
+            "T-right": {(0, 0), (0, 1), (0, 2), (-1, 1)},  
 
-            # # Z-shaped blocks (S-shapes)
-            # "Z-right": {(0, 0), (1, 0), (1, 1), (2, 1)},  
-            # "Z-left": {(0, 0), (-1, 0), (-1, 1), (-2, 1)},  
-            # "S-right": {(0, 0), (1, 0), (0, 1), (-1, 1)},  
-            # "S-left": {(0, 0), (-1, 0), (0, 1), (1, 1)},  
+            # Z-shaped blocks (S-shapes)
+            "Z-right": {(0, 0), (1, 0), (1, 1), (2, 1)},  
+            "Z-left": {(0, 0), (-1, 0), (-1, 1), (-2, 1)},  
+            "S-right": {(0, 0), (1, 0), (0, 1), (-1, 1)},  
+            "S-left": {(0, 0), (-1, 0), (0, 1), (1, 1)},  
         }
 
     def place_piece(self, piece_name, x, y, _color = "RED"):
@@ -137,51 +137,54 @@ class GameBoard:
         return total
 
 def play_game(genome, config):
+    scores = []
     net = neat.nn.FeedForwardNetwork.create(genome, config)
-    board = GameBoard()
-    score = 0
-    piece_names = list(board.pieces.keys())
-    available_pieces = random.sample(piece_names, 1)  # Select initial 3 random pieces
-    hard_limit_iters = 100
+    for i in range(0, 10):
+        board = GameBoard()
+        score = 0
+        piece_names = list(board.pieces.keys())
+        available_pieces = random.sample(piece_names, 3)  # Select initial 3 random pieces
+        hard_limit_iters = 100
 
-    # Randomize board state (adjust probability as needed)
-    # for i in range(8):
-    #     for j in range(8):
-    #         board.board[i][j].occupied = random.random() < 0.2
-    # board.clear_lines()
-    
-    while board.isPossible(available_pieces) and hard_limit_iters > 0:  # Continue until no valid move is left
-        hard_limit_iters -= 1
-        # Flatten board state as input (8x8 grid -> 64 inputs)
-        inputs = [int(board.board[i][j].occupied) for i in range(8) for j in range(8)]
+        # Randomize board state (adjust probability as needed)
+        # for i in range(8):
+        #     for j in range(8):
+        #         board.board[i][j].occupied = random.random() < 0.2
+        # board.clear_lines()
+        
+        while board.isPossible(available_pieces) and hard_limit_iters > 0:  # Continue until no valid move is left
+            hard_limit_iters -= 1
+            # Flatten board state as input (8x8 grid -> 64 inputs)
+            inputs = [int(board.board[i][j].occupied) for i in range(8) for j in range(8)]
 
-        # One-hot encode the available pieces
-        piece_encoding = [1 if piece in available_pieces else 0 for piece in piece_names]
-        inputs.extend(piece_encoding)  # Append to input list
+            # One-hot encode the available pieces
+            piece_encoding = [1 if piece in available_pieces else 0 for piece in piece_names]
+            inputs.extend(piece_encoding)  # Append to input list
 
-        outputs = net.activate(inputs)
+            outputs = net.activate(inputs)
 
-        # Board placement (64 nodes)
-        x, y = int(outputs[0] * 7), int(outputs[1] * 7)
-        piece_index = int(outputs[2] * len(available_pieces))
-        piece_index = min(max(piece_index, 0), len(available_pieces) - 1)
-        piece_name = available_pieces[piece_index]
+            # Board placement (64 nodes)
+            x, y = int(outputs[0] * 7), int(outputs[1] * 7)
+            piece_index = int(outputs[2] * len(available_pieces))
+            piece_index = min(max(piece_index, 0), len(available_pieces) - 1)
+            piece_name = available_pieces[piece_index]
 
-        # x_vals.append(x)
-        # y_vals.append(y)
-        # piecechosen.append(piece_name)
-        if board.place_piece(piece_name, x, y, random.choice(["RED", "BLUE", "GREEN", "YELLOW", "CYAN"])):
-            score += 10
-            linescleared = board.clear_lines()
-            score += linescleared * 80
-            available_pieces.remove(piece_name)  # Remove used piece
-            if not available_pieces:  # If all 3 are used, pick new ones
-                available_pieces = random.sample(piece_names, 1)
+            # x_vals.append(x)
+            # y_vals.append(y)
+            # piecechosen.append(piece_name)
+            if board.place_piece(piece_name, x, y, random.choice(["RED", "BLUE", "GREEN", "YELLOW", "CYAN"])):
+                score += 10
+                linescleared = board.clear_lines()
+                score += linescleared * 80
+                available_pieces.remove(piece_name)  # Remove used piece
+                if not available_pieces:  # If all 3 are used, pick new ones
+                    available_pieces = random.sample(piece_names, 1)
 
-        else:
-            return score  # Ignore invalid moves
-    
-    return score
+            else:
+                hard_limit_iters = 0
+        scores.append(score)
+            
+    return sum(scores) / 3
 
 
 def evaluate_genome(params):
@@ -200,9 +203,9 @@ def run_neat(config_path):
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                         neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
     pop = neat.Population(config)
-    # pop.add_reporter(neat.StdOutReporter(False))
-    # stats = neat.StatisticsReporter()
-    # pop.add_reporter(stats)
+    pop.add_reporter(neat.StdOutReporter(False))
+    stats = neat.StatisticsReporter()
+    pop.add_reporter(stats)
     with Pool(max_workers=10) as pool:
         winner = pop.run(lambda genomes, config: eval_genomes(genomes, config, pool), numGens)
     return winner.fitness, winner
@@ -281,11 +284,11 @@ def print_game(genome, config):
 
 if __name__ == "__main__":
     param_grid = {
-        "pop_size": [150],
+        "pop_size": [300],
         "node_add_prob": [0.9],
         "node_delete_prob": [0.9],
-        "conn_add_prob" : [0.2],
-        "conn_delete_prob" : [0.7],
+        "conn_add_prob" : [0.5],
+        "conn_delete_prob" : [0.2],
         "response_mutate_rate" : [0.7],
         "response_replace_rate" : [0.7],
         "result_default" : [1],

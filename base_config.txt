@@ -1,14 +1,14 @@
 [NEAT]
 fitness_criterion = max
 fitness_threshold = 300.0
-pop_size = 150
+pop_size = 500
 reset_on_extinction = False
 
 [DefaultGenome]
 activation_options = relu
 response_init_stdev = 0.0
 response_init_mean = 1.0
-num_inputs = 65
+num_inputs = 85
 num_outputs = 3
 activation_mutate_rate = 0.1
 aggregation_mutate_rate = 0.06
